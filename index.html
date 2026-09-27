@@ -1,0 +1,790 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Peak - Game Library</title>
+    <!-- Incluimos Tailwind CSS por CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box}
+        :root{
+            --bg-color:#0a0a0f;
+            --text-color:#fff;
+            --card-bg:#14141d;
+            --header-bg:rgba(0,0,0,.45);
+            --placeholder-bg:linear-gradient(135deg,#2a2a3a,#1a1a28);
+            --accent-glow:rgba(139,92,246,0.4);
+        }
+        body.theme-light{
+            --bg-color:#f4f5f8;
+            --text-color:#1a1a1a;
+            --card-bg:#ffffff;
+            --header-bg:rgba(255,255,255,.85);
+            --placeholder-bg:linear-gradient(135deg,#e8e8f0,#d0d0e0);
+            --accent-glow:rgba(139,92,246,0.25);
+        }
+        body.theme-glass{
+            --bg-color:#0a0a12;
+            --text-color:#fff;
+            --card-bg:rgba(255,255,255,.07);
+            --header-bg:rgba(255,255,255,.08);
+            --placeholder-bg:linear-gradient(135deg,rgba(255,255,255,.12),rgba(255,255,255,.05));
+            --accent-glow:rgba(255,255,255,0.3);
+        }
+        body{
+            font-family:'Segoe UI',system-ui,-apple-system,sans-serif;
+            background:var(--bg-color);
+            color:var(--text-color);
+            overflow-x:hidden;
+            min-height:100vh;
+            transition:background .5s,color .4s;
+        }
+
+        .bg-layer{
+            position:fixed;
+            top:0;
+            left:0;
+            width:100vw;
+            height:100vh;
+            z-index:0;
+            background-color: #050508;
+            background-image: var(--default-bg, url('https://i.ibb.co/6RPdqzMc/image.png'));
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: background-image 0.5s ease-in-out, filter 0.6s ease, opacity 0.4s;
+            filter: brightness(0.25) saturate(1.15) blur(18px);
+            transform: scale(1.1);
+            pointer-events: none;
+        }
+        body.theme-light .bg-layer{background-color: #e4e4eb; filter:brightness(0.95) saturate(.9) blur(15px);opacity:0.5}
+        body.theme-glass .bg-layer{filter:brightness(0.3) saturate(1.3) blur(20px)}
+        
+        .bg-layer::after{
+            content:'';
+            position:absolute;
+            inset:0;
+            background:rgba(5, 5, 8, 0.75);
+            pointer-events:none;
+            transition:background .4s;
+        }
+        body.theme-light .bg-layer::after{background:rgba(244, 245, 248, 0.75)}
+
+        .app{position:relative;z-index:1;min-height:100vh;display:flex;flex-direction:column}
+        .status-bar{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:10px 28px;
+            background:rgba(0,0,0,.65);
+            backdrop-filter:blur(16px);
+            border-bottom:1px solid rgba(139,92,246,.2);
+            font-size:13px;
+            color:#a78bfa;
+            gap:16px;
+        }
+        body.theme-light .status-bar{background:rgba(255,255,255,.9);border-bottom-color:rgba(0,0,0,.08);color:#7c3aed}
+        .status-left{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+        .status-pill{
+            display:flex;
+            align-items:center;
+            gap:6px;
+            background:rgba(0,0,0,.45);
+            border:1px solid rgba(139,92,246,.25);
+            border-radius:20px;
+            padding:5px 12px;
+            font-weight:500;
+            white-space:nowrap;
+        }
+        body.theme-light .status-pill{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.12)}
+        .status-pill .dot{width:7px;height:7px;border-radius:50%;background:#a78bfa;box-shadow:0 0 6px #a78bfa}
+        
+        .status-search{
+            flex:1;
+            max-width:650px;
+            display:flex;
+            align-items:center;
+            gap:10px;
+            background:rgba(0,0,0,.5);
+            border:1px solid rgba(139,92,246,.3);
+            border-radius:24px;
+            padding:8px 20px;
+            color:#a78bfa;
+            box-shadow:inset 0 2px 5px rgba(0,0,0,0.3);
+            transition:all 0.3s ease;
+        }
+        .status-search:focus-within {
+            border-color:#a78bfa;
+            box-shadow:0 0 12px rgba(167,139,250,0.3), inset 0 2px 5px rgba(0,0,0,0.3);
+        }
+        body.theme-light .status-search{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.15);color:#7c3aed;box-shadow:none}
+        .status-search input{background:transparent;border:none;outline:none;color:inherit;font-size:14px;width:100%}
+        .status-search input::placeholder{color:rgba(167,139,250,.6)}
+        body.theme-light .status-search input::placeholder{color:rgba(124,58,237,.6)}
+
+        header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:18px 36px;
+            background:var(--header-bg);
+            backdrop-filter:blur(16px);
+            border-bottom:1px solid rgba(255,255,255,.08);
+            transition:background .4s;
+        }
+        body.theme-light header{border-bottom-color:rgba(0,0,0,.08)}
+        .brand-logo {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: 1.2px;
+            color: #fff;
+            text-decoration: none;
+            background: linear-gradient(135deg, #a855f7, #ec4899);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-right: 24px;
+        }
+        body.theme-light .brand-logo {
+            background: linear-gradient(135deg, #7c3aed, #db2777);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        .nav-left{display:flex;align-items:center;gap:32px}
+        .nav-item{
+            color:rgba(255,255,255,.6);
+            font-size:15px;
+            font-weight:600;
+            text-decoration:none;
+            cursor:pointer;
+            transition:color .2s;
+            position:relative;
+            padding-bottom:4px;
+        }
+        body.theme-light .nav-item{color:rgba(0,0,0,.55)}
+        .nav-item:hover,.nav-item.active{color:var(--text-color)}
+        .nav-item.active::after{
+            content:'';
+            position:absolute;
+            left:0;
+            bottom:-2px;
+            width:100%;
+            height:2.5px;
+            background:#8b5cf6;
+            border-radius:2px;
+            box-shadow:0 0 8px #8b5cf6;
+        }
+        .nav-right{display:flex;align-items:center;gap:16px;color:rgba(255,255,255,.8);font-size:14px}
+        body.theme-light .nav-right{color:rgba(0,0,0,.7)}
+        .nav-right .icon-btn{
+            width:38px;
+            height:38px;
+            border-radius:50%;
+            background:rgba(255,255,255,.08);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+            transition:all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size:16px;
+            border:1px solid rgba(255,255,255,0.08);
+            color:inherit;
+        }
+        body.theme-light .nav-right .icon-btn{background:rgba(0,0,0,.06);border-color:rgba(0,0,0,.08)}
+        .nav-right .icon-btn:hover{
+            background:rgba(139,92,246,0.25);
+            border-color:rgba(139,92,246,0.5);
+            transform:translateY(-3px) scale(1.05);
+            color:#fff;
+        }
+
+        main{flex:1;padding:36px 36px 60px}
+        .section{margin-bottom:48px}
+        .section-title{
+            font-size:24px;
+            font-weight:700;
+            margin-bottom:24px;
+            letter-spacing:-.3px;
+            text-shadow:0 2px 12px rgba(0,0,0,.8);
+            display:flex;
+            align-items:center;
+            gap:10px;
+        }
+        body.theme-light .section-title{text-shadow:none}
+
+        /* GRID GENERAL */
+        .games-grid{
+            display: grid;
+            gap: 22px;
+            padding: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        /* ESTILO VERTICAL (Steam) */
+        body.layout-vertical .games-grid {
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        }
+        body.layout-vertical .game-card {
+            width: 100%;
+            height: 270px;
+        }
+
+        /* ESTILO HORIZONTAL (Clásico original) */
+        body.layout-horizontal .games-grid {
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        }
+        body.layout-horizontal .game-card {
+            width: 100%;
+            height: 160px;
+        }
+        
+        .game-card{
+            border-radius: 12px;
+            overflow: hidden;
+            cursor: pointer;
+            position: relative;
+            background: var(--card-bg);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.45);
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex;
+            flex-direction: column;
+        }
+        body.theme-glass .game-card{backdrop-filter:blur(12px);border-color:rgba(255,255,255,.18)}
+        
+        .game-card:hover{
+            transform: translateY(-8px) scale(1.03);
+            box-shadow: 0 22px 45px rgba(0,0,0,0.7), 0 0 20px var(--accent-glow);
+            border-color: rgba(139,92,246,0.6);
+            z-index: 10;
+        }
+        
+        .game-card img{
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);
+        }
+        .game-card:hover img{transform: scale(1.05)}
+
+        .game-card .placeholder{
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 15px;
+            font-weight: 600;
+            text-align: center;
+            padding: 15px;
+            color: rgba(255,255,255,.8);
+            background: var(--placeholder-bg);
+        }
+        body.theme-light .game-card .placeholder{color:rgba(0,0,0,.65)}
+
+        .game-card::after{
+            content:'';
+            position:absolute;
+            inset:0;
+            background:linear-gradient(135deg,rgba(255,255,255,.15),transparent 60%);
+            opacity:0;
+            transition:opacity .3s ease;
+            pointer-events:none;
+            border-radius:12px;
+        }
+        .game-card:hover::after{opacity:1}
+
+        .game-player-overlay{
+            position:fixed;
+            inset:0;
+            z-index:999;
+            background:#08080c;
+            display:none;
+            flex-direction:column;
+        }
+        .game-player-overlay.active{display:flex}
+        
+        .game-player-header{
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            padding:16px 32px;
+            background:#0f0f17;
+            border-bottom:1px solid rgba(255,255,255,0.08);
+            color:#fff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+        }
+        .game-player-title{font-size:18px;font-weight:700;letter-spacing:0.5px;color:#f3f4f6}
+        
+        .close-game-btn{
+            background:linear-gradient(135deg, #ef4444, #dc2626);
+            color:#fff;
+            border:none;
+            padding:10px 20px;
+            border-radius:10px;
+            font-weight:600;
+            cursor:pointer;
+            transition:all 0.2s;
+            box-shadow:0 4px 12px rgba(239,68,68,0.4);
+        }
+        .close-game-btn:hover{transform:scale(1.05);background:linear-gradient(135deg, #dc2626, #b91c1c)}
+        
+        .game-iframe-container{flex:1;width:100%;height:calc(100vh - 65px);position:relative;background:#000;display:flex;align-items:center;justify-content:center}
+        .game-iframe-container iframe{width:100%;height:100%;border:none;display:block}
+
+        .theme-modal-overlay{
+            position:fixed;
+            inset:0;
+            z-index:200;
+            background:rgba(0,0,0,.65);
+            display:none;
+            align-items:center;
+            justify-content:center;
+            backdrop-filter:blur(8px);
+        }
+        .theme-modal-overlay.active{display:flex}
+        .theme-modal{
+            background:#f4f4f7;
+            border-radius:24px;
+            padding:36px 30px 28px;
+            width:440px;
+            max-width:92vw;
+            box-shadow:0 25px 60px rgba(0,0,0,.45);
+            text-align:center;
+            color:#1a1a1a;
+            animation:modalIn .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border: 1px solid rgba(255,255,255,0.8);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        @keyframes modalIn{
+            from{opacity:0;transform:scale(.88) translateY(15px)}
+            to{opacity:1;transform:scale(1) translateY(0)}
+        }
+        .theme-modal .dots{display:flex;justify-content:center;gap:6px;margin-bottom:20px}
+        .theme-modal .dots span{width:22px;height:4.5px;border-radius:3px;background:#d1d1db;transition:all 0.3s}
+        .theme-modal .dots span.active{background:#8b5cf6;width:32px}
+        .theme-modal h2{font-size:24px;font-weight:700;margin-bottom:8px;color:#111}
+        .theme-modal p{font-size:13.5px;color:#666;margin-bottom:20px}
+        .theme-label{text-align:left;font-size:13px;font-weight:700;color:#555;margin-bottom:10px;text-transform:uppercase;letter-spacing:0.5px}
+        .theme-options{
+            display:grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap:10px;
+            margin-bottom:18px;
+        }
+        .theme-btn, .layout-btn{
+            padding:12px 10px;
+            border-radius:14px;
+            border:1.5px solid #e2e2ec;
+            background:#ffffff;
+            color:#333;
+            font-size:13px;
+            font-weight:600;
+            cursor:pointer;
+            transition:all 0.25s cubic-bezier(0.25, 1, 0.5, 1);
+            box-shadow:0 2px 5px rgba(0,0,0,0.03);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .theme-btn:hover, .layout-btn:hover{background:#fafafc;border-color:#b8b8d0;transform:translateY(-2px)}
+        .theme-btn.active, .layout-btn.active{
+            background:#8b5cf6;
+            color:#fff;
+            border-color:#7c4fe0;
+            box-shadow:0 6px 16px rgba(139,92,246,0.35);
+        }
+        .theme-actions{display:flex;justify-content:space-between;align-items:center;border-top:1px solid #eaeaf2;padding-top:18px}
+        .btn-skip{background:transparent;color:#888;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:color 0.2s}
+        .btn-skip:hover{color:#333}
+
+        .site-footer {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 28px 16px;
+            font-size: 13.5px;
+            color: rgba(255, 255, 255, 0.45);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            margin-top: auto;
+            letter-spacing: 0.5px;
+        }
+        .site-footer a {
+            color: inherit;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+        .site-footer a:hover {
+            color: #8b5cf6;
+            text-decoration: underline;
+        }
+        body.theme-light .site-footer {
+            color: rgba(0, 0, 0, 0.45);
+            border-top-color: rgba(0, 0, 0, 0.06);
+        }
+        body.theme-light .site-footer a:hover {
+            color: #7c3aed;
+        }
+
+        @media(max-width:700px){
+            header{padding:12px 16px}
+            main{padding:20px 16px 40px}
+            body.layout-vertical .games-grid{grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 14px;}
+            body.layout-vertical .game-card{height:210px}
+            body.layout-horizontal .games-grid{grid-template-columns: repeat(auto-fill, minmax(100%, 1fr)); gap: 14px;}
+            body.layout-horizontal .game-card{height:140px}
+            .nav-left{gap:16px}
+        }
+    </style>
+</head>
+<body class="layout-vertical">
+    <div class="bg-layer" id="bgLayer"></div>
+    <div class="app">
+        <div class="status-bar">
+            <div class="status-left">
+                <div class="status-pill"><span>🕒</span><span id="statusClock">15:54</span></div>
+                <div class="status-pill"><span class="dot"></span><span>83°F</span></div>
+                <div class="status-pill"><span>📶</span><span id="statusPing">320 ms</span></div>
+                <div class="status-pill"><span>🔋</span><span id="statusBattery">100%</span></div>
+            </div>
+            <div class="status-search">
+                <span>🔍</span>
+                <input type="text" placeholder="Buscar juegos en la biblioteca..." id="gameSearch">
+            </div>
+        </div>
+
+        <header>
+            <div class="nav-left">
+                <a href="#" class="brand-logo" data-tab="home">PEAK</a>
+                <a class="nav-item active" href="#" data-tab="home">Home</a>
+                <a class="nav-item" href="#" data-tab="library">Game Library</a>
+                <a class="nav-item" href="#" data-tab="store">Play Store</a>
+            </div>
+            <div class="nav-right">
+                <button class="icon-btn" id="settingsBtn" title="Ajustes">⚙</button>
+                <div class="icon-btn" title="Perfil">👤</div>
+                <span id="clock" style="font-weight: 600; margin-left: 5px;">12:39</span>
+            </div>
+        </header>
+
+        <main>
+            <!-- VISTA HOME -->
+            <div id="viewHome">
+                <section class="section">
+                    <h2 class="section-title">Lo más nuevo</h2>
+                    <div class="games-grid" id="tryNewRow">
+                        <!-- God of War: Ghost of Sparta -->
+                        <div class="game-card" data-bg="https://i.ibb.co/wZcyGXLd/image.png" data-title="God of War: Ghost of Sparta" data-custom-iframe='<iframe id="playerFrame" class="h-full w-full bg-black" allowfullscreen="" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" src="https://desync.b-cdn.net/flashcard/god-of-war-ghost-of-sparta/index.html"></iframe>'>
+                            <img src="https://i.ibb.co/wZcyGXLd/image.png" alt="God of War: Ghost of Sparta">
+                        </div>
+                        <!-- Lego Batman -->
+                        <div class="game-card" data-bg="https://i.ibb.co/wh6xfbV7/image.png" data-title="Lego Batman" data-custom-iframe='<iframe id="playerFrame" class="h-full w-full bg-black" allowfullscreen="" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" src="https://desync.b-cdn.net/flashcard/lego-batman/index.html"></iframe>'>
+                            <img src="https://i.ibb.co/wh6xfbV7/image.png" alt="Lego Batman">
+                        </div>
+                        <!-- Raft -->
+                        <div class="game-card" data-bg="https://i.ibb.co/KpjS00cw/image.png" data-title="Raft" data-custom-iframe='<iframe id="playerFrame" class="h-full w-full bg-black" allowfullscreen="" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" src="https://desync.b-cdn.net/flashcard/raft/index.html"></iframe>'>
+                            <img src="https://i.ibb.co/KpjS00cw/image.png" alt="Raft">
+                        </div>
+                        <!-- Who's Your Daddy -->
+                        <div class="game-card" data-bg="https://i.ibb.co/GvRn4dcC/image.png" data-title="Who's Your Daddy" data-custom-iframe='<iframe id="playerFrame" class="h-full w-full bg-black" allowfullscreen="" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" src="https://desync.b-cdn.net/flashcard/whosyourdaddy/index.html"></iframe>'>
+                            <img src="https://i.ibb.co/GvRn4dcC/image.png" alt="Who's Your Daddy">
+                        </div>
+                        <!-- Amanda the Adventurer -->
+                        <div class="game-card" data-bg="https://i.ibb.co/2YmKZg1z/image.png" data-title="Amanda the Adventurer" data-custom-iframe='<iframe id="playerFrame" class="h-full w-full bg-black" allowfullscreen="" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" src="https://desync.b-cdn.net/flashcard/amanda-the-adventurer/index.html"></iframe>'>
+                            <img src="https://i.ibb.co/2YmKZg1z/image.png" alt="Amanda the Adventurer">
+                        </div>
+                        <!-- Buckshot Roulette -->
+                        <div class="game-card" data-bg="https://i.ibb.co/6RPdqzMc/image.png" data-title="Buckshot Roulette" data-custom-iframe='<iframe id="playerFrame" class="h-full w-full bg-black" allowfullscreen="" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-pointer-lock" src="https://desync.b-cdn.net/flashcard/buckshot-roulette/index.html"></iframe>'>
+                            <div class="placeholder">Buckshot Roulette</div>
+                        </div>
+                        <!-- SCP-6 -->
+                        <div class="game-card" data-bg="https://i.ibb.co/6RPdqzMc/image.png" data-title="SCP-6" data-url="https://usernotfound211.github.io/SCP-6-/">
+                            <div class="placeholder">SCP-6</div>
+                        </div>
+                        <!-- Brotato -->
+                        <div class="game-card" data-bg="https://i.ibb.co/M5DPcdnW/366.jpg" data-title="Brotato" data-url="https://usernotfound211.github.io/piggig/">
+                            <img src="https://i.ibb.co/M5DPcdnW/366.jpg" alt="Brotato">
+                        </div>
+                        <!-- CheeseRoll -->
+                        <div class="game-card" data-bg="https://i.ibb.co/fdL0mwKV/414.jpg" data-title="CheeseRoll" data-url="https://usernotfound211.github.io/tira-tira/">
+                            <img src="https://i.ibb.co/fdL0mwKV/414.jpg" alt="CheeseRoll">
+                        </div>
+                        <!-- Shift at Midnight -->
+                        <div class="game-card" data-bg="https://i.ibb.co/6Mn515m/356.jpg" data-title="Shift at Midnight" data-url="https://usernotfound211.github.io/trombone/">
+                            <img src="https://i.ibb.co/6Mn515m/356.jpg" alt="Shift at Midnight">
+                        </div>
+                        <!-- I Have No Mouth, and I Must Scream -->
+                        <div class="game-card" data-bg="https://i.ibb.co/zzJ51Hs/413.webp" data-title="I Have No Mouth, and I Must Scream" data-url="https://usernotfound211.github.io/i-have-no-mouth-and-i-must-scream/">
+                            <img src="https://i.ibb.co/zzJ51Hs/413.webp" alt="I Have No Mouth, and I Must Scream">
+                        </div>
+                        <!-- Side Effects -->
+                        <div class="game-card" data-bg="https://i.ibb.co/DPCJMVds/42.jpg" data-title="Side Effects" data-url="https://usernotfound211.github.io/side-effects-1-/">
+                            <img src="https://i.ibb.co/DPCJMVds/42.jpg" alt="Side Effects">
+                        </div>
+                        <!-- Bouncer Master -->
+                        <div class="game-card" data-bg="https://i.ibb.co/ynG7RSsz/image.png" data-title="Bouncer Master" data-url="https://usernotfound211.github.io/bouncermaster/">
+                            <img src="https://i.ibb.co/wh4jHprZ/image.png" alt="Bouncer Master">
+                        </div>
+                        <!-- Postal -->
+                        <div class="game-card" data-bg="https://i.ibb.co/67HyRvpH/image.png" data-title="Postal" data-url="https://usernotfound211.github.io/postal/">
+                            <img src="https://i.ibb.co/FLG312Pt/image.png" alt="Postal">
+                        </div>
+                        <!-- Clover Pit -->
+                        <div class="game-card" data-bg="https://i.ibb.co/rRw845TQ/image.png" data-title="Clover Pit" data-url="https://usernotfound211.github.io/cloverpit/">
+                            <img src="https://i.ibb.co/Lh8V96Rq/343.jpg" alt="Clover Pit">
+                        </div>
+                        <!-- Overburden -->
+                        <div class="game-card" data-bg="https://i.ibb.co/kVNzJzHf/416.jpg" data-title="Overburden" data-url="https://usernotfound211.github.io/overburden/">
+                            <img src="https://i.ibb.co/kVNzJzHf/416.jpg" alt="Overburden">
+                        </div>
+                        <!-- Plants vs Zombies -->
+                        <div class="game-card" data-bg="https://i.ibb.co/PZSbxYNx/image.png" data-title="Plants vs Zombies" data-url="https://usernotfound211.github.io/plants-vs-zombies/">
+                            <img src="https://i.ibb.co/PZSbxYNx/image.png" alt="Plants vs Zombies">
+                        </div>
+                        <!-- HOW TO FISH -->
+                        <div class="game-card" data-bg="https://i.ibb.co/XrZZp0ws/486.jpg" data-title="How to Fish" data-url="https://usernotfound211.github.io/How-to-fish_/">
+                            <img src="https://i.ibb.co/XrZZp0ws/486.jpg" alt="How to Fish">
+                        </div>
+                        <!-- HOW DO YOU -->
+                        <div class="game-card" data-bg="https://i.ibb.co/B5CGNhXx/image.png" data-title="How Do You" data-custom-iframe='<iframe src="https://howdoyou.mza.com.ar/" title="howdoyou.mza.com.ar" class="player-frame h-full w-full touch-none bg-white pointer-events-auto" referrerpolicy="no-referrer" allow="fullscreen; autoplay; clipboard-write; gamepad" sandbox="allow-scripts allow-forms allow-same-origin allow-pointer-lock"></iframe>'>
+                            <img src="https://i.ibb.co/B5CGNhXx/image.png" alt="How Do You">
+                        </div>
+                        <!-- Dude Theft Auto -->
+                        <div class="game-card" data-bg="https://i.ibb.co/Zp5TfHZR/image.png" data-title="Dude Theft Auto" data-custom-iframe='<iframe title="Dude Theft Auto" id="iframehtml5" class="d-block h-full w-full bg-black" width="100%" height="100%" target="_parent" src="https://game.azgame.io/dude-theft-auto/" frameborder="0" border="0" scrolling="no" allowfullscreen=""></iframe>'>
+                            <img src="https://i.ibb.co/Zp5TfHZR/image.png" alt="Dude Theft Auto">
+                        </div>
+                        <!-- Horror Nun 2 -->
+                        <div class="game-card" data-bg="https://i.ibb.co/KprSJ7Gt/image.png" data-title="Horror Nun 2" data-custom-iframe='<iframe id="iframe-in-game" src="https://www.gameflare.com/embed/horror-nun-2/" marginwidth="0" marginheight="0" frameborder="0" scrolling="no" width="100%" height="100%" class="h-full w-full bg-black" allow="autoplay; fullscreen" allowfullscreen=""></iframe>'>
+                            <img src="https://i.ibb.co/KprSJ7Gt/image.png" alt="Horror Nun 2">
+                        </div>
+                        <!-- Escape Road -->
+                        <div class="game-card" data-bg="https://i.ibb.co/PzGBZcHh/image.png" data-title="Escape Road" data-custom-iframe='<iframe id="iframehtml5" width="100%" height="100%" src="https://azgames.io/game/escape-road/" frameborder="0" border="0" scrolling="no" class="iframe-default h-full w-full bg-black" allowfullscreen=""></iframe>'>
+                            <img src="https://i.ibb.co/PzGBZcHh/image.png" alt="Escape Road">
+                        </div>
+                    </div>
+                </section>
+                <section class="section">
+                    <h2 class="section-title">Pronto</h2>
+                    <div class="games-grid" id="recommendRow">
+                        <!-- GTA Vice City -->
+                        <div class="game-card" data-bg="https://i.ibb.co/GvQtDZhM/image.png" data-title="GTA Vice City" data-url="https://gtavc.armdev.cn/" data-nohistory="true">
+                            <img src="https://i.ibb.co/GvQtDZhM/image.png" alt="GTA Vice City">
+                        </div>
+                    </div>
+                </section>
+            </div>
+            <!-- VISTA GAME LIBRARY -->
+            <div id="viewLibrary" style="display:none;">
+                <section class="section">
+                    <h2 class="section-title">🎮 Biblioteca de Juegos</h2>
+                    <div class="empty-history" style="color: rgba(255,255,255,0.6);">Explora todos los títulos disponibles en la plataforma.</div>
+                </section>
+            </div>
+            <!-- VISTA STORE -->
+            <div id="viewStore" style="display:none;">
+                <section class="section">
+                    <h2 class="section-title">🛍️ Play Store & Extensiones</h2>
+                    <div class="empty-history" style="color: rgba(255,255,255,0.6);">Próximamente más juegos y contenidos disponibles en la tienda.</div>
+                </section>
+            </div>
+        </main>
+        
+        <!-- FOOTER -->
+        <footer class="site-footer">
+            <span>made by : desyncunblocked</span>
+            <a href="https://www.tiktok.com/@desyncunblocked" target="_blank" rel="noopener noreferrer">tiktok : desyncunblocked</a>
+        </footer>
+    </div>
+
+    <!-- PANTALLA INTEGRADA DEL JUEGO (NORMAL Y LIMPIA A PANTALLA COMPLETA) -->
+    <div class="game-player-overlay" id="gamePlayerOverlay">
+        <div class="game-player-header">
+            <span class="game-player-title" id="playerGameTitle">Cargando juego...</span>
+            <button class="close-game-btn" id="closeGameBtn">✕ Salir del Juego</button>
+        </div>
+        <div class="game-iframe-container" id="gameIframeContainer">
+            <iframe id="gameIframe" allow="autoplay; fullscreen; camera; focus-without-user-activation; monetization; gamepad; keyboard-map; xr-spatial-tracking; clipboard-write; web-share; accelerometer; magnetometer; gyroscope; display-capture" allowfullscreen></iframe>
+        </div>
+    </div>
+
+    <!-- MODAL DE AJUSTES Y TEMAS -->
+    <div class="theme-modal-overlay" id="themeModal">
+        <div class="theme-modal">
+            <div class="dots"><span class="active"></span><span></span></div>
+            <h2>Ajustes y Apariencia</h2>
+            <p>Personaliza tu experiencia visual y de diseño.</p>
+            
+            <div class="theme-label">Tema de Color</div>
+            <div class="theme-options">
+                <button class="theme-btn active" data-theme="dark">Oscuro</button>
+                <button class="theme-btn" data-theme="light">Claro</button>
+                <button class="theme-btn" data-theme="glass">Glassmorphism</button>
+            </div>
+
+            <div class="theme-label">Diseño de Tarjetas</div>
+            <div class="theme-options" style="margin-bottom: 22px;">
+                <button class="layout-btn active" data-layout="layout-vertical">Vertical (Steam)</button>
+                <button class="layout-btn" data-layout="layout-horizontal">Horizontal (Clásico)</button>
+            </div>
+
+            <div class="theme-actions">
+                <button class="btn-skip" id="closeModalBtn">Cerrar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const settingsBtn = document.getElementById('settingsBtn');
+        const themeModal = document.getElementById('themeModal');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const gameSearch = document.getElementById('gameSearch');
+        const bgLayer = document.getElementById('bgLayer');
+
+        settingsBtn.addEventListener('click', () => themeModal.classList.add('active'));
+        closeModalBtn.addEventListener('click', () => themeModal.classList.remove('active'));
+
+        // Cargar preferencias guardadas si existen
+        const savedTheme = localStorage.getItem('peak_theme') || 'dark';
+        const savedLayout = localStorage.getItem('peak_layout') || 'layout-vertical';
+
+        document.body.classList.remove('theme-light', 'theme-glass');
+        if(savedTheme === 'light') document.body.classList.add('theme-light');
+        if(savedTheme === 'glass') document.body.classList.add('theme-glass');
+
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            if(btn.getAttribute('data-theme') === savedTheme) {
+                document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        });
+
+        document.body.classList.remove('layout-vertical', 'layout-horizontal');
+        document.body.classList.add(savedLayout);
+        document.querySelectorAll('.layout-btn').forEach(btn => {
+            if(btn.getAttribute('data-layout') === savedLayout) {
+                document.querySelectorAll('.layout-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            }
+        });
+
+        // Cambio de temas de color
+        const themeBtns = document.querySelectorAll('.theme-btn');
+        themeBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                themeBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const theme = btn.getAttribute('data-theme');
+                document.body.classList.remove('theme-light', 'theme-glass');
+                if(theme === 'light') document.body.classList.add('theme-light');
+                if(theme === 'glass') document.body.classList.add('theme-glass');
+                localStorage.setItem('peak_theme', theme);
+            });
+        });
+
+        // Cambio de diseño de tarjetas (Vertical vs Horizontal)
+        const layoutBtns = document.querySelectorAll('.layout-btn');
+        layoutBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                layoutBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                const layout = btn.getAttribute('data-layout');
+                document.body.classList.remove('layout-vertical', 'layout-horizontal');
+                document.body.classList.add(layout);
+                localStorage.setItem('peak_layout', layout);
+            });
+        });
+
+        // Navegación de pestañas
+        const navItems = document.querySelectorAll('.nav-item, .brand-logo');
+        const views = {
+            home: document.getElementById('viewHome'),
+            library: document.getElementById('viewLibrary'),
+            store: document.getElementById('viewStore')
+        };
+
+        navItems.forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const tab = item.getAttribute('data-tab') || 'home';
+                
+                document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                if(item.classList.contains('nav-item')) item.classList.add('active');
+
+                Object.values(views).forEach(v => v.style.display = 'none');
+                if(views[tab]) views[tab].style.display = 'block';
+            });
+        });
+
+        // Buscador de juegos
+        gameSearch.addEventListener('input', (e) => {
+            const term = e.target.value.toLowerCase();
+            const cards = document.querySelectorAll('.game-card');
+            cards.forEach(card => {
+                const title = card.getAttribute('data-title').toLowerCase();
+                card.style.display = title.includes(term) ? 'flex' : 'none';
+            });
+        });
+
+        // Dinámica de hover para cambiar el fondo a la imagen del juego
+        const defaultBgUrl = 'https://i.ibb.co/6RPdqzMc/image.png';
+        const gameCards = document.querySelectorAll('.game-card');
+
+        gameCards.forEach(card => {
+            const bgImg = card.getAttribute('data-bg');
+            
+            card.addEventListener('mouseenter', () => {
+                if(bgImg) {
+                    bgLayer.style.backgroundImage = `url('${bgImg}')`;
+                }
+            });
+
+            card.addEventListener('mouseleave', () => {
+                bgLayer.style.backgroundImage = `url('${defaultBgUrl}')`;
+            });
+
+            // Lógica para abrir el juego en el reproductor a pantalla completa limpio
+            card.addEventListener('click', () => {
+                const title = card.getAttribute('data-title');
+                const customIframe = card.getAttribute('data-custom-iframe');
+                const url = card.getAttribute('data-url');
+
+                document.getElementById('playerGameTitle').innerText = title;
+                const container = document.getElementById('gameIframeContainer');
+                
+                if (customIframe) {
+                    container.innerHTML = customIframe;
+                } else if (url) {
+                    container.innerHTML = `<iframe id="gameIframe" class="h-full w-full bg-black border-none" allow="autoplay; fullscreen; camera; gamepad; clipboard-write" src="${url}" allowfullscreen></iframe>`;
+                }
+
+                document.getElementById('gamePlayerOverlay').classList.add('active');
+            });
+        });
+
+        // Cerrar el juego
+        const overlay = document.getElementById('gamePlayerOverlay');
+        const closeGameBtn = document.getElementById('closeGameBtn');
+
+        closeGameBtn.addEventListener('click', () => {
+            overlay.classList.remove('active');
+            document.getElementById('gameIframeContainer').innerHTML = '<iframe id="gameIframe" allow="autoplay; fullscreen" allowfullscreen></iframe>';
+        });
+
+        // Reloj e información en la barra superior
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            document.getElementById('statusClock').innerText = timeStr;
+            document.getElementById('clock').innerText = timeStr;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
